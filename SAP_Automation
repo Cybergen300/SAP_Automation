@@ -1,14 +1,3 @@
-' SAP GUI Scripting Exercise
-' This file is provided as is. Please use and modify it for your own use.
-' Check out my playlist of SAP GUI Scripting related videos:
-' https://www.youtube.com/watch?v=oPPhA14Pm-8&list=PLk9erb9HGsPh28DftWcP8BIXmBtu2wnsL
-'
-' This examples does the following:
-' 1) Runs a script in SE16, opens a table, loads a variant and extracts the information into a CSV file
-' 2) Open the CSV file and loads it into a sheet on Excel
-'
-' Cheers, Csongor
-
 Public SapGuiAuto, WScript, msgcol
 Public objGui  As GuiApplication
 Public objConn As GuiConnection
