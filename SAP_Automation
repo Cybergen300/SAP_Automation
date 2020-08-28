@@ -1,0 +1,190 @@
+' SAP GUI Scripting Exercise
+' This file is provided as is. Please use and modify it for your own use.
+' Check out my playlist of SAP GUI Scripting related videos:
+' https://www.youtube.com/watch?v=oPPhA14Pm-8&list=PLk9erb9HGsPh28DftWcP8BIXmBtu2wnsL
+'
+' This examples does the following:
+' 1) Runs a script in SE16, opens a table, loads a variant and extracts the information into a CSV file
+' 2) Open the CSV file and loads it into a sheet on Excel
+'
+' Cheers, Csongor
+
+Public SapGuiAuto, WScript, msgcol
+Public objGui  As GuiApplication
+Public objConn As GuiConnection
+Public objSess As GuiSession
+Public objSBar As GuiStatusbar
+Public objSheet As Worksheet
+Dim W_System
+Const fpath = "d:\My Documents\knowledgebase\GUI Scripting"
+Const ffilename = "crm.txt"
+
+
+Sub OpenCSVFile()
+'
+' Load the CSV extract
+'
+
+'
+    With ActiveSheet.QueryTables.Add(Connection:= _
+        "TEXT;" & fpath & "\" & ffilename, Destination:=Range("$A$1"))
+        .Name = "crm"
+        .FieldNames = True
+        .RowNumbers = False
+        .FillAdjacentFormulas = False
+        .PreserveFormatting = True
+        .RefreshOnFileOpen = False
+        .RefreshStyle = xlInsertDeleteCells
+        .SavePassword = False
+        .SaveData = True
+        .AdjustColumnWidth = True
+        .RefreshPeriod = 0
+        .TextFilePromptOnRefresh = False
+        .TextFilePlatform = 850
+        .TextFileStartRow = 4
+        .TextFileParseType = xlDelimited
+        .TextFileTextQualifier = xlTextQualifierDoubleQuote
+        .TextFileConsecutiveDelimiter = False
+        .TextFileTabDelimiter = False
+        .TextFileSemicolonDelimiter = False
+        .TextFileCommaDelimiter = False
+        .TextFileSpaceDelimiter = False
+        .TextFileOtherDelimiter = "|"
+        .TextFileColumnDataTypes = Array(9, 9, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+        .TextFileTrailingMinusNumbers = True
+        .Refresh BackgroundQuery:=False
+    End With
+End Sub
+
+Sub DeleteAll()
+'
+' DeleteAll Macro
+'
+
+'
+    On Error Resume Next
+    Cells.Select
+    Selection.QueryTable.Delete
+    Selection.ClearContents
+    Range("A1").Select
+End Sub
+
+Function Attach_Session() As Boolean
+Dim il, it
+Dim W_conn, W_Sess
+
+If W_System = "" Then
+   Attach_Session = False
+   Exit Function
+End If
+
+If Not objSess Is Nothing Then
+    If objSess.Info.SystemName & objSess.Info.Client = W_System Then
+        Attach_Session = True
+        Exit Function
+    End If
+End If
+
+If objGui Is Nothing Then
+   Set SapGuiAuto = GetObject("SAPGUI")
+   Set objGui = SapGuiAuto.GetScriptingEngine
+End If
+
+For il = 0 To objGui.Children.Count - 1
+    Set W_conn = objGui.Children(il + 0)
+    For it = 0 To W_conn.Children.Count - 1
+        Set W_Sess = W_conn.Children(it + 0)
+        If W_Sess.Info.SystemName & W_Sess.Info.Client = W_System Then
+            Set objConn = objGui.Children(il + 0)
+            Set objSess = objConn.Children(it + 0)
+            Exit For
+        End If
+    Next
+Next
+
+If objSess Is Nothing Then
+   MsgBox "No active session to system " + W_System + ", or scripting is not enabled.", vbCritical + vbOKOnly
+   Attach_Session = False
+   Exit Function
+End If
+
+If IsObject(WScript) Then
+   WScript.ConnectObject objSess, "on"
+   WScript.ConnectObject objGui, "on"
+End If
+
+Set objSBar = objSess.findById("wnd[0]/sbar")
+objSess.findById("wnd[0]").maximize
+Attach_Session = True
+
+
+End Function
+
+Public Sub RunGUIScript()
+
+Dim W_Ret As Boolean
+
+
+' Connect to SAP
+W_Ret = Attach_Session
+If Not W_Ret Then
+    Exit Sub
+End If
+
+
+On Error GoTo myerr
+
+'===========================================================
+Replace the below SAP GUI Script by your own process script
+'===========================================================
+
+objSess.findById("wnd[0]").maximize
+objSess.findById("wnd[0]/usr/cntlIMAGE_CONTAINER/shellcont/shell/shellcont[0]/shell").selectedNode = "F00067"
+objSess.findById("wnd[0]/usr/cntlIMAGE_CONTAINER/shellcont/shell/shellcont[0]/shell").doubleClickNode "F00067"
+objSess.findById("wnd[0]/usr/ctxt$1PERIB").Text = "7"
+objSess.findById("wnd[0]/usr/ctxt_1KOSET-LOW").Text = "YO001250"
+objSess.findById("wnd[0]/usr/ctxt_1KOSET-LOW").SetFocus
+objSess.findById("wnd[0]/usr/ctxt_1KOSET-LOW").caretPosition = 8
+objSess.findById("wnd[0]").sendVKey 8
+objSess.findById("wnd[0]/usr").verticalScrollbar.Position = 55
+objSess.findById("wnd[0]/usr/lbl[0,46]").SetFocus
+objSess.findById("wnd[0]/usr/lbl[0,46]").caretPosition = 0
+objSess.findById("wnd[0]").sendVKey 2
+objSess.findById("wnd[0]/usr/lbl[0,36]").SetFocus
+objSess.findById("wnd[0]/usr/lbl[0,36]").caretPosition = 0
+objSess.findById("wnd[0]").sendVKey 2
+objSess.findById("wnd[0]/tbar[1]/btn[14]").press
+objSess.findById("wnd[1]/usr/ctxtLGRWO-OUT_FILE").Text = "Test_Extract"
+objSess.findById("wnd[1]/usr/ctxtLGRWO-OUT_FILE").SetFocus
+objSess.findById("wnd[1]/usr/ctxtLGRWO-OUT_FILE").caretPosition = 12
+objSess.findById("wnd[1]/tbar[0]/btn[0]").press
+objSess.findById("wnd[2]/usr/btnSPOP-VAROPTION2").press
+
+Exit Sub
+
+myerr:
+   MsgBox "Error occured while retrieving data", vbCritical + vbOKOnly
+    
+
+End Sub
+
+Sub StartExtract()
+
+    ' Set the sid and client to connect to
+    W_System = "INPUT YOUR CLIENT CODE"
+    
+    ' Run the GUI script
+    RunGUIScript
+    
+    ' End the GUI session
+    objSess.EndTransaction
+    
+End Sub
+
+
+
+
+
+
+    
+
